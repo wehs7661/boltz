@@ -8,7 +8,6 @@ from typing import Any
 import numpy as np
 from p_tqdm import p_umap
 from redis import Redis
-from tqdm import tqdm
 
 from boltz.data.parse.a3m import parse_a3m
 
@@ -79,7 +78,7 @@ def process(args) -> None:
 
     else:
         # Run in serial
-        for path in tqdm(data):
+        for path in data:
             process_msa(
                 path,
                 outdir=args.outdir,
