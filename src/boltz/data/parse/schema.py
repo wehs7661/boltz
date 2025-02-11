@@ -7,6 +7,7 @@ import numpy as np
 from rdkit import rdBase, Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdchem import Conformer, Mol
+from func_timeout import func_timeout, FunctionTimedOut
 
 from boltz.data import const
 from boltz.data.types import (
@@ -101,7 +102,7 @@ def convert_atom_name(name: str) -> tuple[int, int, int, int]:
     return tuple(name)
 
 
-def compute_3d_conformer(mol: Mol, version: str = "v3") -> bool:
+def compute_3d_conformer(mol: Mol, version: str = "v3", timeout: float = 300) -> bool:
     """Generate 3D coordinates using EKTDG method.
 
     Taken from `pdbeccdutils.core.component.Component`.
@@ -112,6 +113,8 @@ def compute_3d_conformer(mol: Mol, version: str = "v3") -> bool:
         The RDKit molecule to process
     version: str, optional
         The ETKDG version, defaults ot v3
+    timeout: float, optional
+        The maximum time to wait for the computation. The defaults is 300 seconds.
 
     Returns
     -------
@@ -119,41 +122,52 @@ def compute_3d_conformer(mol: Mol, version: str = "v3") -> bool:
         Whether computation was successful.
 
     """
-    if version == "v3":
-        options = AllChem.ETKDGv3()
-    elif version == "v2":
-        options = AllChem.ETKDGv2()
-    else:
-        options = AllChem.ETKDGv2()
+    def _inner_computation(mol: Mol, version: str) -> bool:
+        if version == "v3":
+            options = AllChem.ETKDGv3()
+        elif version == "v2":
+            options = AllChem.ETKDGv2()
+        else:
+            options = AllChem.ETKDGv2()
 
-    options.clearConfs = False
-    conf_id = -1
+        options.clearConfs = False
+        conf_id = -1
 
-    try:
-        conf_id = AllChem.EmbedMolecule(mol, options)
-
-        if conf_id == -1:
-            print(f"WARNING: RDKit ETKDGv3 failed to generate a conformer for molecule "
-                  f"{Chem.MolToSmiles(AllChem.RemoveHs(mol))}, so the program will start with random coordinates. "
-                  f"Note that the performance of the model under this behaviour was not tested.")
-            options.useRandomCoords = True
+        try:
             conf_id = AllChem.EmbedMolecule(mol, options)
 
-        AllChem.UFFOptimizeMolecule(mol, confId=conf_id, maxIters=1000)
+            if conf_id == -1:
+                print(f"WARNING: RDKit ETKDGv3 failed to generate a conformer for molecule "
+                    f"{Chem.MolToSmiles(AllChem.RemoveHs(mol))}, so the program will start with random coordinates. "
+                    f"Note that the performance of the model under this behaviour was not tested.")
+                options.useRandomCoords = True
+                conf_id = AllChem.EmbedMolecule(mol, options)
 
-    except RuntimeError:
-        pass  # Force field issue here
-    except ValueError:
-        pass  # sanitization issue here
+            AllChem.UFFOptimizeMolecule(mol, confId=conf_id, maxIters=1000)
 
-    if conf_id != -1:
-        conformer = mol.GetConformer(conf_id)
-        conformer.SetProp("name", "Computed")
-        conformer.SetProp("coord_generation", f"ETKDG{version}")
+        except RuntimeError:
+            pass  # Force field issue here
+        except ValueError:
+            pass  # sanitization issue here
 
-        return True
+        if conf_id != -1:
+            conformer = mol.GetConformer(conf_id)
+            conformer.SetProp("name", "Computed")
+            conformer.SetProp("coord_generation", f"ETKDG{version}")
 
-    return False
+            return True
+
+        return False
+
+    if timeout != 0:
+        try:
+            success = func_timeout(timeout, _inner_computation, args=(mol, version))
+        except FunctionTimedOut:
+            success = False
+    else:
+        success = _inner_computation(mol, version)
+
+    return success
 
 
 def get_conformer(mol: Mol) -> Conformer:
