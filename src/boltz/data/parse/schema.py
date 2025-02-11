@@ -7,7 +7,6 @@ import numpy as np
 from rdkit import rdBase, Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdchem import Conformer, Mol
-from func_timeout import func_timeout, FunctionTimedOut
 
 from boltz.data import const
 from boltz.data.types import (
@@ -102,7 +101,7 @@ def convert_atom_name(name: str) -> tuple[int, int, int, int]:
     return tuple(name)
 
 
-def compute_3d_conformer(mol: Mol, version: str = "v3", timeout: float = 300) -> bool:
+def compute_3d_conformer(mol: Mol, version: str = "v3", timeout: int = 0) -> bool:
     """Generate 3D coordinates using EKTDG method.
 
     Taken from `pdbeccdutils.core.component.Component`.
@@ -113,8 +112,8 @@ def compute_3d_conformer(mol: Mol, version: str = "v3", timeout: float = 300) ->
         The RDKit molecule to process
     version: str, optional
         The ETKDG version, defaults ot v3
-    timeout: float, optional
-        The maximum time to wait for the computation. The defaults is 300 seconds.
+    timeout: int, optional
+        The maximum time to wait for the computation. The defaults to 0, which means no timeout.
 
     Returns
     -------
@@ -122,52 +121,42 @@ def compute_3d_conformer(mol: Mol, version: str = "v3", timeout: float = 300) ->
         Whether computation was successful.
 
     """
-    def _inner_computation(mol: Mol, version: str) -> bool:
-        if version == "v3":
-            options = AllChem.ETKDGv3()
-        elif version == "v2":
-            options = AllChem.ETKDGv2()
-        else:
-            options = AllChem.ETKDGv2()
+    if version == "v3":
+        options = AllChem.ETKDGv3()
+    elif version == "v2":
+        options = AllChem.ETKDGv2()
+    else:
+        options = AllChem.ETKDGv2()
 
-        options.clearConfs = False
-        conf_id = -1
+    options.clearConfs = False
+    options.timeout = timeout
+    conf_id = -1
 
-        try:
+    try:
+        conf_id = AllChem.EmbedMolecule(mol, options)
+
+        if conf_id == -1:
+            print(f"WARNING: RDKit ETKDGv3 failed to generate a conformer for molecule "
+                  f"{Chem.MolToSmiles(AllChem.RemoveHs(mol))}, so the program will start with random coordinates. "
+                  f"Note that the performance of the model under this behaviour was not tested.")
+            options.useRandomCoords = True
             conf_id = AllChem.EmbedMolecule(mol, options)
 
-            if conf_id == -1:
-                print(f"WARNING: RDKit ETKDGv3 failed to generate a conformer for molecule "
-                    f"{Chem.MolToSmiles(AllChem.RemoveHs(mol))}, so the program will start with random coordinates. "
-                    f"Note that the performance of the model under this behaviour was not tested.")
-                options.useRandomCoords = True
-                conf_id = AllChem.EmbedMolecule(mol, options)
+        AllChem.UFFOptimizeMolecule(mol, confId=conf_id, maxIters=1000)
 
-            AllChem.UFFOptimizeMolecule(mol, confId=conf_id, maxIters=1000)
+    except RuntimeError:
+        pass  # Force field issue here
+    except ValueError:
+        pass  # sanitization issue here
 
-        except RuntimeError:
-            pass  # Force field issue here
-        except ValueError:
-            pass  # sanitization issue here
+    if conf_id != -1:
+        conformer = mol.GetConformer(conf_id)
+        conformer.SetProp("name", "Computed")
+        conformer.SetProp("coord_generation", f"ETKDG{version}")
 
-        if conf_id != -1:
-            conformer = mol.GetConformer(conf_id)
-            conformer.SetProp("name", "Computed")
-            conformer.SetProp("coord_generation", f"ETKDG{version}")
+        return True
 
-            return True
-
-        return False
-
-    if timeout != 0:
-        try:
-            success = func_timeout(timeout, _inner_computation, args=(mol, version))
-        except FunctionTimedOut:
-            success = False
-    else:
-        success = _inner_computation(mol, version)
-
-    return success
+    return False
 
 
 def get_conformer(mol: Mol) -> Conformer:
@@ -667,7 +656,7 @@ def parse_boltz_schema(  # noqa: C901, PLR0915, PLR0912
             for atom, can_idx in zip(mol.GetAtoms(), canonical_order):
                 atom.SetProp("name", atom.GetSymbol().upper() + str(can_idx + 1))
 
-            success = compute_3d_conformer(mol)
+            success = compute_3d_conformer(mol, timeout=300)
             if not success:
                 msg = f"Failed to compute 3D conformer for {seq}"
                 raise ValueError(msg)
