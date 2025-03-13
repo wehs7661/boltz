@@ -175,7 +175,8 @@ class PredictionDataset(torch.utils.data.Dataset):
             )
         except Exception as e:  # noqa: BLE001
             print(f"Featurizer failed on {record.id} with error {e}. Skipping.")  # noqa: T201
-            return self.__getitem__(0)
+            raise e
+            # return self.__getitem__(0)
 
         features["record"] = record
         return features
