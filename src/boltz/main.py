@@ -10,7 +10,7 @@ import torch
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.utilities import rank_zero_only
-from tqdm import tqdm
+
 
 from boltz.data import const
 from boltz.data.module.inference import BoltzInferenceDataModule
@@ -377,7 +377,7 @@ def process_inputs(  # noqa: C901, PLR0912, PLR0915
 
     # Parse input data
     records: list[Record] = existing_records if existing_records is not None else []
-    for path in tqdm(data):
+    for path in data:
         try:
             # Parse data
             if path.suffix in (".fa", ".fas", ".fasta"):
