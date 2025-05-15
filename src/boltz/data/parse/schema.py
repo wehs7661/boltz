@@ -101,7 +101,7 @@ def convert_atom_name(name: str) -> tuple[int, int, int, int]:
     return tuple(name)
 
 
-def compute_3d_conformer(mol: Mol, version: str = "v3") -> bool:
+def compute_3d_conformer(mol: Mol, version: str = "v3", timeout: int = 0) -> bool:
     """Generate 3D coordinates using EKTDG method.
 
     Taken from `pdbeccdutils.core.component.Component`.
@@ -112,6 +112,8 @@ def compute_3d_conformer(mol: Mol, version: str = "v3") -> bool:
         The RDKit molecule to process
     version: str, optional
         The ETKDG version, defaults ot v3
+    timeout: int, optional
+        The maximum time to wait for the computation. The defaults to 0, which means no timeout.
 
     Returns
     -------
@@ -127,6 +129,7 @@ def compute_3d_conformer(mol: Mol, version: str = "v3") -> bool:
         options = AllChem.ETKDGv2()
 
     options.clearConfs = False
+    options.timeout = timeout
     conf_id = -1
 
     try:
@@ -653,7 +656,7 @@ def parse_boltz_schema(  # noqa: C901, PLR0915, PLR0912
             for atom, can_idx in zip(mol.GetAtoms(), canonical_order):
                 atom.SetProp("name", atom.GetSymbol().upper() + str(can_idx + 1))
 
-            success = compute_3d_conformer(mol)
+            success = compute_3d_conformer(mol, timeout=300)
             if not success:
                 msg = f"Failed to compute 3D conformer for {seq}"
                 raise ValueError(msg)

@@ -4,7 +4,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 
 METRICS = ["lddt", "bb_lddt", "tm_score", "rmsd"]
 
@@ -287,7 +286,7 @@ def eval_models(chai_preds, chai_evals, af3_preds, af3_evals, boltz_preds, boltz
     # Create a dataframe with the following schema:
     # tool, name, metric, oracle, average, top1
     results = []
-    for name in tqdm(common):
+    for name in common:
         try:
             af3_results = compute_af3_metrics(
                 af3_preds_names[name],

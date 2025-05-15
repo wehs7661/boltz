@@ -13,7 +13,6 @@ import rdkit
 from mmcif import parse_mmcif
 from p_tqdm import p_umap
 from redis import Redis
-from tqdm import tqdm
 
 from boltz.data.filter.static.filter import StaticFilter
 from boltz.data.filter.static.ligand import ExcludedLigands
@@ -291,7 +290,7 @@ def process(args) -> None:
         # Run processing in parallel
         p_umap(fn, data, num_cpus=num_processes)
     else:
-        for item in tqdm(data):
+        for item in data:
             process_structure(
                 item,
                 resource=resource,

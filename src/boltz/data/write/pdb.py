@@ -8,13 +8,21 @@ from boltz.data.types import Structure
 from boltz.data.write.utils import generate_tags
 
 
-def to_pdb(structure: Structure, plddts: Optional[Tensor] = None) -> str:  # noqa: PLR0915
+def to_pdb(
+    structure: Structure,
+    plddts: Optional[Tensor] = None,
+    rename_chains: bool=False
+) -> str:  # noqa: PLR0915
     """Write a structure into a PDB file.
 
     Parameters
     ----------
     structure : Structure
         The input structure
+    plddts : Optional[Tensor], optional
+        The predicted PLDDTs, by default None
+    rename_chains : bool, optional
+        Whether to rename the chains in alphabetical order, by default False
 
     Returns
     -------
@@ -36,7 +44,7 @@ def to_pdb(structure: Structure, plddts: Optional[Tensor] = None) -> str:  # noq
     for chain in structure.chains:
         # We rename the chains in alphabetical order
         chain_idx = chain["asym_id"]
-        chain_tag = next(chain_tags)
+        chain_tag = next(chain_tags) if rename_chains else chain["name"]
 
         res_start = chain["res_idx"]
         res_end = chain["res_idx"] + chain["res_num"]
