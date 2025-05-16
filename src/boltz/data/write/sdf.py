@@ -20,18 +20,16 @@ def write_ligand_sdf(chain: Chain, atoms: np.ndarray, bonds: np.ndarray, output_
         The path to the output SDF file.
     """
     rwmol = Chem.RWMol()
-    idx_map = {}
 
     # Add atoms to the molecule
     for idx, atom in enumerate(atoms):
         elem = int(atom["element"])
         rd_idx = rwmol.AddAtom(Chem.Atom(elem))
-        idx_map[idx] = rd_idx
 
     # Add bonds to the molecule
     for bond in bonds:
-        a1 = idx_map[bond["atom_1"] - chain["atom_idx"]]
-        a2 = idx_map[bond["atom_2"] - chain["atom_idx"]]
+        a1 = bond["atom_1"] - chain["atom_idx"]
+        a2 = bond["atom_2"] - chain["atom_idx"]
         btype = bond["type"]
         if btype == const.bond_type_ids["SINGLE"]:
             rd_btype = Chem.BondType.SINGLE
