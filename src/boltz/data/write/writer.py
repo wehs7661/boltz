@@ -26,6 +26,7 @@ class BoltzWriter(BasePredictionWriter):
         data_dir: str,
         output_dir: str,
         output_format: Literal["pdb", "mmcif"] = "mmcif",
+        ligand_sdf: bool = False
     ) -> None:
         """Initialize the writer.
 
@@ -43,6 +44,7 @@ class BoltzWriter(BasePredictionWriter):
         self.data_dir = Path(data_dir)
         self.output_dir = Path(output_dir)
         self.output_format = output_format
+        self.ligand_sdf = ligand_sdf
         self.failed = 0
 
         # Create the output directories
