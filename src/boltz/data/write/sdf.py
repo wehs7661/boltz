@@ -1,7 +1,8 @@
 import numpy as np
 from pathlib import Path
 from rdkit import Chem
-from boltz.data.types import Structure, chain
+from rdkit.Geometry import Point3D
+from boltz.data.types import Structure, Chain
 from boltz.data import const
 
 def write_ligand_sdf(chain: Chain, atoms: np.ndarray, bonds: np.ndarray, output_path: Path) -> None:
@@ -50,7 +51,7 @@ def write_ligand_sdf(chain: Chain, atoms: np.ndarray, bonds: np.ndarray, output_
     conf = Chem.Conformer(mol.GetNumAtoms())
     for i, atom in enumerate(atoms):
         x, y, z = atom["coords"]
-        conf.SetAtomPosition(i, Chem.Geometry.Point3D(float(x), float(y), float(z)))
+        conf.SetAtomPosition(i, Point3D(float(x), float(y), float(z)))
     mol.AddConformer(conf, assignId=True)
 
     # Write the SDF file

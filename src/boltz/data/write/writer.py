@@ -14,8 +14,10 @@ from boltz.data.types import (
     Record,
     Structure,
 )
+from boltz.data import const
 from boltz.data.write.mmcif import to_mmcif
 from boltz.data.write.pdb import to_pdb
+from boltz.data.write.sdf import write_ligand_sdf
 
 
 class BoltzWriter(BasePredictionWriter):
@@ -158,6 +160,28 @@ class BoltzWriter(BasePredictionWriter):
                 else:
                     path = struct_dir / f"{outname}.npz"
                     np.savez_compressed(path, **asdict(new_structure))
+
+                # Save ligand sdf
+                if self.ligand_sdf:
+                    ligand_chain_indices =[
+                        i for i, chain in enumerate(new_structure.chains)
+                        if chain["mol_type"] == const.chain_type_ids["NONPOLYMER"]
+                    ]
+
+                    for li in ligand_chain_indices:
+                        chain_info = new_structure.chains[li]
+                        chain_id = chain_info["name"]  # Alphabetic chain ID
+
+                        start, count = chain_info["atom_idx"], chain_info["atom_num"]
+                        atom_slice = new_structure.atoms[start : start + count]
+                        bond_list = [
+                            bond for bond in new_structure.bonds  # new_structure.bonds should only ligand bonds though
+                            if start <= bond["atom_1"] < start + count and start <= bond["atom_2"] < start + count
+                        ]
+
+                        ligand_filename = f"{outname}_ligand_{chain_id}.sdf"
+                        output_path = struct_dir / ligand_filename
+                        write_ligand_sdf(chain_info, atom_slice, bond_list, output_path)
 
                 # Save confidence summary
                 if "plddt" in prediction:
