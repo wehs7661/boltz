@@ -169,8 +169,9 @@ class PredictionDataset(torch.utils.data.Dataset):
                 self.constraints_dir,
             )
         except Exception as e:  # noqa: BLE001
-            print(f"Failed to load input for {record.id} with error {e}. Skipping.")  # noqa: T201
-            return self.__getitem__(0)
+            print(f"Failed to load input for {record.id} with error {e}. Skipping.", flush=True)  # noqa: T201
+            raise e
+            # return self.__getitem__(0)
 
         # Tokenize structure
         try:

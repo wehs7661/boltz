@@ -3,7 +3,7 @@ import concurrent.futures
 import subprocess
 from pathlib import Path
 
-from tqdm import tqdm
+
 
 OST_COMPARE_STRUCTURE = r"""
 #!/bin/bash
@@ -148,9 +148,8 @@ def main(args):
                     futures.append(future)
 
         # Wait for all tasks to complete
-        with tqdm(total=len(futures)) as pbar:
-            for _ in concurrent.futures.as_completed(futures):
-                pbar.update(1)
+        for _ in concurrent.futures.as_completed(futures):
+            pass
 
 
 if __name__ == "__main__":
