@@ -767,6 +767,7 @@ def predict(
         accelerator=accelerator,
         devices=devices,
         precision=32,
+        enable_progress_bar=False,
     )
 
     # Compute predictions
