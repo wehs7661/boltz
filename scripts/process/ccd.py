@@ -15,7 +15,6 @@ from pdbeccdutils.core.component import ConformerType
 from rdkit import rdBase
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdchem import Conformer, Mol
-from tqdm import tqdm
 
 
 def load_molecules(components: str) -> list[Mol]:
@@ -255,7 +254,7 @@ def main(args: argparse.Namespace) -> None:
         ):
             metadata.append({"name": name, "result": result})
     else:
-        for mol in tqdm(molecules):
+        for mol in molecules:
             name, result = process_fn(mol)
             metadata.append({"name": name, "result": result})
 
